@@ -3,679 +3,585 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚡ Neon Kronometre</title>
+<title>桜 Kronometre</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;500;700&family=Zen+Kaku+Gothic+New:wght@300;500&display=swap');
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
     min-height: 100vh;
-    background: #0a0a0f;
+    background: #f5f0e8;
+    background-image: 
+      radial-gradient(ellipse at 20% 50%, rgba(216,167,167,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 50%, rgba(183,164,150,0.1) 0%, transparent 50%);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-family: 'Orbitron', monospace;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
     overflow: hidden;
     position: relative;
   }
 
-  canvas#particleCanvas {
+  /* Kağıt dokusu */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  canvas#sakuraCanvas {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    z-index: 0;
+    z-index: 1;
     pointer-events: none;
   }
 
   .container {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 30px;
+    gap: 32px;
+    padding: 20px;
   }
 
-  .clock-wrapper {
+  /* Üst kanji dekorasyon */
+  .top-kanji {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: #b8a090;
+    letter-spacing: 12px;
+    text-transform: uppercase;
+  }
+
+  /* Ana kart */
+  .card {
+    background: rgba(255,252,247,0.85);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 48px 56px;
+    box-shadow: 
+      0 2px 40px rgba(139,115,95,0.08),
+      0 0 0 1px rgba(139,115,95,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
     position: relative;
-    width: 320px;
-    height: 320px;
+    overflow: hidden;
+    min-width: 340px;
+  }
+
+  /* Kart üst çizgi - kırmızı accent */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 60px; height: 3px;
+    background: linear-gradient(90deg, transparent, #c45c5c, transparent);
+    border-radius: 0 0 4px 4px;
+  }
+
+  /* Enso daire */
+  .enso-wrap {
+    position: relative;
+    width: 220px;
+    height: 220px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  svg.ring {
+  svg.enso-ring {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
     transform: rotate(-90deg);
-    filter: drop-shadow(0 0 15px var(--glow-color, #00f0ff));
   }
 
-  .ring-bg {
+  .enso-bg {
     fill: none;
-    stroke: #1a1a2e;
-    stroke-width: 6;
+    stroke: #e8e0d4;
+    stroke-width: 3;
   }
 
-  .ring-progress {
+  .enso-progress {
     fill: none;
-    stroke: url(#neonGrad);
-    stroke-width: 6;
-    stroke-linecap: round;
-    stroke-dasharray: 942;
-    stroke-dashoffset: 942;
-    transition: stroke-dashoffset 0.1s linear;
-  }
-
-  .ring-seconds {
-    fill: none;
-    stroke: url(#secondGrad);
+    stroke: url(#sakuraGrad);
     stroke-width: 3;
     stroke-linecap: round;
-    stroke-dasharray: 855;
-    stroke-dashoffset: 855;
-    transition: stroke-dashoffset 0.05s linear;
+    stroke-dasharray: 660;
+    stroke-dashoffset: 660;
+    transition: stroke-dashoffset 0.3s ease;
   }
 
-  .inner-glow {
+  /* Enso fırça efekti - dekoratif */
+  .enso-brush {
     position: absolute;
-    width: 260px;
-    height: 260px;
+    top: -8px; left: -8px;
+    width: calc(100% + 16px);
+    height: calc(100% + 16px);
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(0,240,255,0.03) 0%, transparent 70%);
-    border: 1px solid rgba(0,240,255,0.08);
+    border: 2px solid transparent;
+    opacity: 0.06;
+    border-top-color: #4a3728;
+    border-right-color: #4a3728;
+    border-bottom-color: transparent;
+    border-left-color: transparent;
+    transform: rotate(30deg);
+  }
+
+  .time-inner {
     display: flex;
-    align-items: center;
-    justify-content: center;
     flex-direction: column;
+    align-items: center;
+    gap: 6px;
   }
 
   .time-display {
-    font-size: 2.6rem;
-    font-weight: 900;
-    background: linear-gradient(135deg, #00f0ff, #b400ff, #ff006a);
-    background-size: 300% 300%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradientShift 4s ease infinite;
-    letter-spacing: 2px;
-    text-shadow: none;
-    position: relative;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: #3a322a;
+    letter-spacing: 3px;
+    line-height: 1;
   }
 
-  .time-display::after {
-    content: attr(data-time);
-    position: absolute;
-    top: 0; left: 0;
-    background: linear-gradient(135deg, #00f0ff, #b400ff, #ff006a);
-    background-size: 300% 300%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradientShift 4s ease infinite;
-    filter: blur(12px);
-    opacity: 0.6;
-    z-index: -1;
-  }
-
-  .ms-display {
-    font-size: 1rem;
-    color: rgba(0,240,255,0.5);
-    margin-top: 4px;
-    letter-spacing: 4px;
-  }
-
-  .status-text {
+  .time-label {
     font-size: 0.6rem;
-    color: rgba(255,255,255,0.2);
-    text-transform: uppercase;
+    color: #b8a090;
     letter-spacing: 6px;
-    margin-top: 8px;
+    text-transform: uppercase;
   }
 
-  @keyframes gradientShift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: #b8a090;
+    background: rgba(184,160,144,0.08);
+    transition: all 0.4s ease;
   }
 
+  .status-badge .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #b8a090;
+    transition: all 0.4s ease;
+  }
+
+  .status-badge.running { color: #8b9e6b; background: rgba(139,158,107,0.08); }
+  .status-badge.running .dot { background: #8b9e6b; animation: softPulse 2s ease infinite; }
+  .status-badge.paused { color: #c45c5c; background: rgba(196,92,92,0.06); }
+  .status-badge.paused .dot { background: #c45c5c; }
+
+  @keyframes softPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Butonlar */
   .controls {
     display: flex;
-    gap: 16px;
+    gap: 12px;
     flex-wrap: wrap;
     justify-content: center;
   }
 
   .btn {
-    position: relative;
-    padding: 14px 32px;
+    padding: 12px 28px;
     border: none;
-    border-radius: 50px;
-    font-family: 'Orbitron', monospace;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 3px;
-    text-transform: uppercase;
+    border-radius: 14px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 2px;
     cursor: pointer;
     transition: all 0.3s ease;
+    position: relative;
     overflow: hidden;
-    outline: none;
   }
-
-  .btn::before {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-    transition: left 0.5s ease;
-  }
-
-  .btn:hover::before { left: 100%; }
 
   .btn-start {
-    background: linear-gradient(135deg, #00f0ff22, #00f0ff11);
-    color: #00f0ff;
-    border: 1px solid #00f0ff44;
-    box-shadow: 0 0 20px rgba(0,240,255,0.15), inset 0 0 20px rgba(0,240,255,0.05);
+    background: #3a322a;
+    color: #f5f0e8;
   }
   .btn-start:hover {
-    box-shadow: 0 0 40px rgba(0,240,255,0.3), inset 0 0 30px rgba(0,240,255,0.1);
-    transform: translateY(-2px);
+    background: #4a4238;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(58,50,42,0.2);
   }
 
-  .btn-stop {
-    background: linear-gradient(135deg, #ff006a22, #ff006a11);
-    color: #ff006a;
-    border: 1px solid #ff006a44;
-    box-shadow: 0 0 20px rgba(255,0,106,0.15), inset 0 0 20px rgba(255,0,106,0.05);
+  .btn-pause {
+    background: rgba(196,92,92,0.08);
+    color: #c45c5c;
+    border: 1px solid rgba(196,92,92,0.15);
   }
-  .btn-stop:hover {
-    box-shadow: 0 0 40px rgba(255,0,106,0.3), inset 0 0 30px rgba(255,0,106,0.1);
-    transform: translateY(-2px);
-  }
-
-  .btn-reset {
-    background: linear-gradient(135deg, #b400ff22, #b400ff11);
-    color: #b400ff;
-    border: 1px solid #b400ff44;
-    box-shadow: 0 0 20px rgba(180,0,255,0.15), inset 0 0 20px rgba(180,0,255,0.05);
-  }
-  .btn-reset:hover {
-    box-shadow: 0 0 40px rgba(180,0,255,0.3), inset 0 0 30px rgba(180,0,255,0.1);
-    transform: translateY(-2px);
+  .btn-pause:hover {
+    background: rgba(196,92,92,0.14);
+    transform: translateY(-1px);
   }
 
   .btn-lap {
-    background: linear-gradient(135deg, #f0ff0022, #f0ff0011);
-    color: #c8d800;
-    border: 1px solid #c8d80044;
-    box-shadow: 0 0 20px rgba(200,216,0,0.15), inset 0 0 20px rgba(200,216,0,0.05);
+    background: rgba(139,158,107,0.08);
+    color: #7a8e5e;
+    border: 1px solid rgba(139,158,107,0.15);
   }
   .btn-lap:hover {
-    box-shadow: 0 0 40px rgba(200,216,0,0.3), inset 0 0 30px rgba(200,216,0,0.1);
-    transform: translateY(-2px);
+    background: rgba(139,158,107,0.15);
+    transform: translateY(-1px);
   }
 
-  .btn:active { transform: scale(0.95) !important; }
+  .btn-reset {
+    background: rgba(184,160,144,0.08);
+    color: #9e8e7e;
+    border: 1px solid rgba(184,160,144,0.15);
+  }
+  .btn-reset:hover {
+    background: rgba(184,160,144,0.15);
+    transform: translateY(-1px);
+  }
 
-  .laps-container {
-    width: 360px;
-    max-height: 220px;
+  .btn:active { transform: scale(0.96) !important; }
+
+  /* Tur kayıtları */
+  .laps-section {
+    width: 100%;
+    max-height: 180px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: #b400ff33 transparent;
+    scrollbar-color: #d4ccc0 transparent;
   }
 
-  .laps-container::-webkit-scrollbar { width: 4px; }
-  .laps-container::-webkit-scrollbar-track { background: transparent; }
-  .laps-container::-webkit-scrollbar-thumb { background: #b400ff44; border-radius: 2px; }
+  .laps-section::-webkit-scrollbar { width: 3px; }
+  .laps-section::-webkit-scrollbar-thumb { background: #d4ccc0; border-radius: 3px; }
 
   .lap-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 20px;
-    margin-bottom: 4px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.04);
-    animation: lapIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    backdrop-filter: blur(10px);
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(184,160,144,0.1);
+    animation: fadeUp 0.4s ease;
   }
 
-  .lap-item:hover {
-    background: rgba(255,255,255,0.05);
-    border-color: rgba(0,240,255,0.15);
-  }
+  .lap-item:last-child { border-bottom: none; }
 
-  .lap-item.best { border-color: rgba(0,255,100,0.3); }
-  .lap-item.best .lap-time { color: #00ff64; }
-  .lap-item.worst { border-color: rgba(255,0,106,0.3); }
-  .lap-item.worst .lap-time { color: #ff006a; }
-
-  .lap-number {
+  .lap-num {
     font-size: 0.6rem;
-    color: rgba(255,255,255,0.25);
+    color: #c4a88c;
     letter-spacing: 2px;
+    min-width: 50px;
+  }
+
+  .lap-diff {
+    font-size: 0.6rem;
+    color: #b8a090;
+    font-family: 'Noto Serif JP', serif;
   }
 
   .lap-time {
     font-size: 0.8rem;
-    color: rgba(0,240,255,0.7);
-    letter-spacing: 1px;
+    color: #5a4e42;
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 500;
   }
 
-  .lap-diff {
-    font-size: 0.55rem;
-    color: rgba(180,0,255,0.5);
-    letter-spacing: 1px;
+  .lap-item.best .lap-time { color: #7a8e5e; }
+  .lap-item.worst .lap-time { color: #c45c5c; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  @keyframes lapIn {
-    0% { opacity: 0; transform: translateX(-30px) scale(0.9); }
-    100% { opacity: 1; transform: translateX(0) scale(1); }
+  /* Alt dekorasyon */
+  .bottom-deco {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.8rem;
+    color: rgba(184,160,144,0.15);
+    letter-spacing: 20px;
+    user-select: none;
   }
 
-  .floating-orb {
-    position: fixed;
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 0;
-    filter: blur(80px);
-    animation: floatOrb 8s ease-in-out infinite;
-  }
-
-  .orb1 {
-    width: 300px; height: 300px;
-    background: rgba(0,240,255,0.06);
-    top: -100px; left: -100px;
-    animation-delay: 0s;
-  }
-  .orb2 {
-    width: 250px; height: 250px;
-    background: rgba(180,0,255,0.06);
-    bottom: -80px; right: -80px;
-    animation-delay: -3s;
-  }
-  .orb3 {
-    width: 200px; height: 200px;
-    background: rgba(255,0,106,0.04);
-    top: 50%; left: 60%;
-    animation-delay: -5s;
-  }
-
-  @keyframes floatOrb {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    25% { transform: translate(30px, -30px) scale(1.1); }
-    50% { transform: translate(-20px, 20px) scale(0.95); }
-    75% { transform: translate(15px, 10px) scale(1.05); }
-  }
-
-  .pulse-dot {
-    position: absolute;
-    top: 18px;
-    right: calc(50% - 4px);
-    width: 8px; height: 8px;
-    background: #00f0ff;
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  .pulse-dot.active {
-    opacity: 1;
-    animation: pulse 1s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 4px #00f0ff, 0 0 8px #00f0ff; transform: scale(1); }
-    50% { box-shadow: 0 0 12px #00f0ff, 0 0 24px #00f0ff; transform: scale(1.3); }
-  }
-
-  .keyboard-hint {
-    position: fixed;
-    bottom: 20px;
+  .shortcut-hint {
     font-size: 0.5rem;
-    color: rgba(255,255,255,0.15);
-    letter-spacing: 3px;
-    text-transform: uppercase;
+    color: rgba(184,160,144,0.4);
+    letter-spacing: 2px;
+  }
+
+  /* Separator çizgi */
+  .sep {
+    width: 40px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #c4a88c44, transparent);
   }
 
   @media (max-width: 480px) {
-    .clock-wrapper { width: 260px; height: 260px; }
-    .inner-glow { width: 210px; height: 210px; }
-    .time-display { font-size: 2rem; }
-    .laps-container { width: 300px; }
-    .btn { padding: 12px 22px; font-size: 0.65rem; }
+    .card { padding: 36px 28px; min-width: 300px; }
+    .enso-wrap { width: 180px; height: 180px; }
+    .time-display { font-size: 2.2rem; }
+    .btn { padding: 10px 20px; font-size: 0.7rem; }
   }
 </style>
 </head>
 <body>
 
-<div class="floating-orb orb1"></div>
-<div class="floating-orb orb2"></div>
-<div class="floating-orb orb3"></div>
-
-<canvas id="particleCanvas"></canvas>
+<canvas id="sakuraCanvas"></canvas>
 
 <div class="container">
-  <div class="clock-wrapper">
-    <svg class="ring" viewBox="0 0 320 320">
-      <defs>
-        <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#00f0ff"/>
-          <stop offset="50%" style="stop-color:#b400ff"/>
-          <stop offset="100%" style="stop-color:#ff006a"/>
-        </linearGradient>
-        <linearGradient id="secondGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" style="stop-color:#00f0ff;stop-opacity:0.4"/>
-          <stop offset="100%" style="stop-color:#b400ff;stop-opacity:0.4"/>
-        </linearGradient>
-      </defs>
-      <circle class="ring-bg" cx="160" cy="160" r="150"/>
-      <circle class="ring-seconds" cx="160" cy="160" r="136"/>
-      <circle class="ring-progress" cx="160" cy="160" r="150"/>
-    </svg>
-    <div class="pulse-dot" id="pulseDot"></div>
-    <div class="inner-glow">
-      <div class="time-display" id="display" data-time="00:00:00">00:00:00</div>
-      <div class="ms-display" id="msDisplay">.000</div>
-      <div class="status-text" id="statusText">hazır</div>
+  <div class="top-kanji">勉強の時間</div>
+
+  <div class="card">
+    <div class="status-badge" id="statusBadge">
+      <span class="dot"></span>
+      <span id="statusText">hazır</span>
     </div>
+
+    <div class="enso-wrap">
+      <svg class="enso-ring" viewBox="0 0 220 220">
+        <defs>
+          <linearGradient id="sakuraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#d4a0a0"/>
+            <stop offset="50%" style="stop-color:#c45c5c"/>
+            <stop offset="100%" style="stop-color:#8b6b5e"/>
+          </linearGradient>
+        </defs>
+        <circle class="enso-bg" cx="110" cy="110" r="105"/>
+        <circle class="enso-progress" cx="110" cy="110" r="105"/>
+      </svg>
+      <div class="enso-brush"></div>
+      <div class="time-inner">
+        <div class="time-display" id="display">00:00</div>
+        <div class="time-label" id="timeLabel">dakika : saniye</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-start" id="btnStart" onclick="toggleTimer()">Başlat</button>
+      <button class="btn btn-lap" id="btnLap" onclick="addLap()">Tur</button>
+      <button class="btn btn-reset" onclick="resetTimer()">Sıfırla</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="laps-section" id="lapsContainer"></div>
   </div>
 
-  <div class="controls">
-    <button class="btn btn-start" id="btnStart" onclick="startTimer()">Başlat</button>
-    <button class="btn btn-stop" id="btnStop" onclick="stopTimer()">Durdur</button>
-    <button class="btn btn-lap" id="btnLap" onclick="addLap()">Tur</button>
-    <button class="btn btn-reset" id="btnReset" onclick="resetTimer()">Sıfırla</button>
-  </div>
-
-  <div class="laps-container" id="lapsContainer"></div>
+  <div class="bottom-deco">桜 風 道</div>
+  <div class="shortcut-hint">Space: Başlat / Durdur &nbsp;&nbsp; L: Tur &nbsp;&nbsp; R: Sıfırla</div>
 </div>
 
-<div class="keyboard-hint">Space: Başlat/Durdur &nbsp;|&nbsp; L: Tur &nbsp;|&nbsp; R: Sıfırla</div>
-
 <script>
-  let startTime = 0;
-  let elapsed = 0;
-  let running = false;
-  let animFrame = null;
-  let laps = [];
-  let lastLapTime = 0;
+  let startTime = 0, elapsed = 0, running = false, animFrame = null;
+  let laps = [], lastLapTime = 0;
 
   const display = document.getElementById('display');
-  const msDisplay = document.getElementById('msDisplay');
+  const timeLabel = document.getElementById('timeLabel');
+  const statusBadge = document.getElementById('statusBadge');
   const statusText = document.getElementById('statusText');
-  const pulseDot = document.getElementById('pulseDot');
+  const btnStart = document.getElementById('btnStart');
   const lapsContainer = document.getElementById('lapsContainer');
-  const ringProgress = document.querySelector('.ring-progress');
-  const ringSeconds = document.querySelector('.ring-seconds');
+  const ring = document.querySelector('.enso-progress');
+  const circ = 2 * Math.PI * 105;
+  ring.style.strokeDasharray = circ;
+  ring.style.strokeDashoffset = circ;
 
-  const circumference = 2 * Math.PI * 150;
-  const secCircumference = 2 * Math.PI * 136;
-  ringProgress.style.strokeDasharray = circumference;
-  ringProgress.style.strokeDashoffset = circumference;
-  ringSeconds.style.strokeDasharray = secCircumference;
-  ringSeconds.style.strokeDashoffset = secCircumference;
-
-  function formatTime(ms) {
-    const totalSec = Math.floor(ms / 1000);
-    const mins = Math.floor(totalSec / 60);
-    const secs = totalSec % 60;
-    const hrs = Math.floor(mins / 60);
-    const displayMins = mins % 60;
-    if (hrs > 0) {
-      return `${pad(hrs)}:${pad(displayMins)}:${pad(secs)}`;
-    }
-    return `${pad(displayMins)}:${pad(secs)}`;
+  function fmt(ms) {
+    const t = Math.floor(ms / 1000);
+    const s = t % 60, m = Math.floor(t / 60) % 60, h = Math.floor(t / 3600);
+    if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    return `${pad(m)}:${pad(s)}`;
   }
 
-  function formatMs(ms) {
-    return '.' + String(ms % 1000).padStart(3, '0');
+  function fmtFull(ms) {
+    const t = Math.floor(ms / 1000);
+    const s = t % 60, m = Math.floor(t / 60);
+    return `${pad(m)}:${pad(s)}`;
   }
 
   function pad(n) { return String(n).padStart(2, '0'); }
 
-  function formatFull(ms) {
-    const totalSec = Math.floor(ms / 1000);
-    const mins = Math.floor(totalSec / 60);
-    const secs = totalSec % 60;
-    const millis = ms % 1000;
-    return `${pad(mins)}:${pad(secs)}.${String(millis).padStart(3, '0')}`;
-  }
-
-  function updateDisplay() {
+  function update() {
     if (!running) return;
-    const now = performance.now();
-    elapsed = now - startTime;
+    elapsed = performance.now() - startTime;
+    display.textContent = fmt(elapsed);
 
-    const timeStr = formatTime(elapsed);
-    display.textContent = timeStr;
-    display.setAttribute('data-time', timeStr);
-    msDisplay.textContent = formatMs(elapsed);
+    const t = Math.floor(elapsed / 1000);
+    const h = Math.floor(t / 3600);
+    if (h > 0) timeLabel.textContent = 'saat : dakika : saniye';
+    else timeLabel.textContent = 'dakika : saniye';
 
-    // Ring - dakika (60 saniyede bir tur)
-    const secFraction = (elapsed % 60000) / 60000;
-    const offset = circumference * (1 - secFraction);
-    ringProgress.style.strokeDashoffset = offset;
+    // Ring: 60 saniyede bir tur
+    const frac = (elapsed % 60000) / 60000;
+    ring.style.strokeDashoffset = circ * (1 - frac);
 
-    // Inner ring - saniye (1 saniyede bir tur)
-    const msecFraction = (elapsed % 1000) / 1000;
-    const secOffset = secCircumference * (1 - msecFraction);
-    ringSeconds.style.strokeDashoffset = secOffset;
-
-    animFrame = requestAnimationFrame(updateDisplay);
+    animFrame = requestAnimationFrame(update);
   }
 
-  function startTimer() {
-    if (running) return;
-    running = true;
-    startTime = performance.now() - elapsed;
-    statusText.textContent = 'çalışıyor';
-    pulseDot.classList.add('active');
-    burstParticles(window.innerWidth / 2, window.innerHeight / 2, '#00f0ff', 25);
-    updateDisplay();
-  }
-
-  function stopTimer() {
-    if (!running) return;
-    running = false;
-    cancelAnimationFrame(animFrame);
-    statusText.textContent = 'durduruldu';
-    pulseDot.classList.remove('active');
-    burstParticles(window.innerWidth / 2, window.innerHeight / 2, '#ff006a', 25);
+  function toggleTimer() {
+    if (running) {
+      running = false;
+      cancelAnimationFrame(animFrame);
+      statusBadge.className = 'status-badge paused';
+      statusText.textContent = 'duraklatıldı';
+      btnStart.textContent = 'Devam';
+      btnStart.className = 'btn btn-start';
+    } else {
+      running = true;
+      startTime = performance.now() - elapsed;
+      statusBadge.className = 'status-badge running';
+      statusText.textContent = 'çalışıyor';
+      btnStart.textContent = 'Durdur';
+      btnStart.className = 'btn btn-pause';
+      update();
+    }
   }
 
   function resetTimer() {
     running = false;
     cancelAnimationFrame(animFrame);
-    elapsed = 0;
-    lastLapTime = 0;
-    laps = [];
-    display.textContent = '00:00:00';
-    display.setAttribute('data-time', '00:00:00');
-    msDisplay.textContent = '.000';
+    elapsed = 0; lastLapTime = 0; laps = [];
+    display.textContent = '00:00';
+    timeLabel.textContent = 'dakika : saniye';
+    statusBadge.className = 'status-badge';
     statusText.textContent = 'hazır';
-    pulseDot.classList.remove('active');
-    ringProgress.style.strokeDashoffset = circumference;
-    ringSeconds.style.strokeDashoffset = secCircumference;
+    btnStart.textContent = 'Başlat';
+    btnStart.className = 'btn btn-start';
+    ring.style.strokeDashoffset = circ;
     lapsContainer.innerHTML = '';
-    burstParticles(window.innerWidth / 2, window.innerHeight / 2, '#b400ff', 35);
   }
 
   function addLap() {
     if (!running) return;
-    const lapTime = elapsed;
-    const diff = lapTime - lastLapTime;
-    lastLapTime = lapTime;
-    laps.push({ total: lapTime, diff: diff });
-    burstParticles(window.innerWidth / 2, window.innerHeight / 2, '#c8d800', 15);
+    const diff = elapsed - lastLapTime;
+    lastLapTime = elapsed;
+    laps.push({ total: elapsed, diff });
     renderLaps();
   }
 
   function renderLaps() {
     lapsContainer.innerHTML = '';
-    if (laps.length < 2) {
-      laps.forEach((lap, i) => {
-        lapsContainer.insertAdjacentHTML('afterbegin', createLapHTML(i, lap, ''));
-      });
-      return;
-    }
-
     const diffs = laps.map(l => l.diff);
-    const minDiff = Math.min(...diffs);
-    const maxDiff = Math.max(...diffs);
+    const best = laps.length >= 2 ? Math.min(...diffs) : null;
+    const worst = laps.length >= 2 ? Math.max(...diffs) : null;
 
-    laps.forEach((lap, i) => {
+    for (let i = laps.length - 1; i >= 0; i--) {
+      const l = laps[i];
       let cls = '';
       if (laps.length >= 2) {
-        if (lap.diff === minDiff) cls = 'best';
-        else if (lap.diff === maxDiff) cls = 'worst';
+        if (l.diff === best) cls = 'best';
+        else if (l.diff === worst) cls = 'worst';
       }
-      lapsContainer.insertAdjacentHTML('afterbegin', createLapHTML(i, lap, cls));
-    });
-  }
-
-  function createLapHTML(i, lap, cls) {
-    return `<div class="lap-item ${cls}">
-      <span class="lap-number">TUR ${i + 1}</span>
-      <span class="lap-diff">+${formatFull(lap.diff)}</span>
-      <span class="lap-time">${formatFull(lap.total)}</span>
-    </div>`;
-  }
-
-  // Keyboard shortcuts
-  document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') {
-      e.preventDefault();
-      running ? stopTimer() : startTimer();
-    } else if (e.code === 'KeyL') {
-      addLap();
-    } else if (e.code === 'KeyR') {
-      resetTimer();
+      lapsContainer.insertAdjacentHTML('beforeend',
+        `<div class="lap-item ${cls}">
+          <span class="lap-num">Tur ${i + 1}</span>
+          <span class="lap-diff">+${fmtFull(l.diff)}</span>
+          <span class="lap-time">${fmtFull(l.total)}</span>
+        </div>`
+      );
     }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); toggleTimer(); }
+    else if (e.code === 'KeyL') addLap();
+    else if (e.code === 'KeyR') resetTimer();
   });
 
-  // ===== PARTICLE SYSTEM =====
-  const canvas = document.getElementById('particleCanvas');
+  // ===== SAKURA PETALS =====
+  const canvas = document.getElementById('sakuraCanvas');
   const ctx = canvas.getContext('2d');
-  let particles = [];
-  let bgParticles = [];
+  let petals = [];
 
-  function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
+  function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+  resize();
+  addEventListener('resize', resize);
 
-  class Particle {
-    constructor(x, y, color, size, vx, vy, life) {
-      this.x = x; this.y = y;
-      this.color = color;
-      this.size = size;
-      this.vx = vx; this.vy = vy;
-      this.life = life;
-      this.maxLife = life;
-      this.gravity = 0.02;
-    }
-    update() {
-      this.x += this.vx;
-      this.y += this.vy;
-      this.vy += this.gravity;
-      this.vx *= 0.99;
-      this.life--;
-    }
-    draw(ctx) {
-      const alpha = this.life / this.maxLife;
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = this.color;
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 15;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size * alpha, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
-
-  class BgParticle {
-    constructor() {
-      this.reset();
-      this.y = Math.random() * canvas.height;
-    }
+  class Petal {
+    constructor() { this.reset(); this.y = Math.random() * canvas.height; }
     reset() {
       this.x = Math.random() * canvas.width;
-      this.y = canvas.height + 10;
-      this.size = Math.random() * 2 + 0.5;
-      this.speed = Math.random() * 0.3 + 0.1;
-      this.opacity = Math.random() * 0.3 + 0.05;
-      this.color = ['#00f0ff', '#b400ff', '#ff006a'][Math.floor(Math.random() * 3)];
+      this.y = -20;
+      this.size = Math.random() * 8 + 5;
+      this.speedY = Math.random() * 0.6 + 0.2;
+      this.speedX = Math.random() * 0.4 - 0.2;
+      this.rot = Math.random() * Math.PI * 2;
+      this.rotSpeed = (Math.random() - 0.5) * 0.02;
       this.wobble = Math.random() * Math.PI * 2;
-      this.wobbleSpeed = Math.random() * 0.02 + 0.005;
+      this.wobbleSpeed = Math.random() * 0.015 + 0.005;
+      this.opacity = Math.random() * 0.25 + 0.08;
+      const pinkVariant = Math.floor(Math.random() * 4);
+      this.colors = [
+        ['#f2d0d0', '#e8a0a0'],
+        ['#f0c8c8', '#d4878e'],
+        ['#f5dada', '#d4a0a0'],
+        ['#ffe0e0', '#e0b0b0']
+      ][pinkVariant];
     }
     update() {
-      this.y -= this.speed;
+      this.y += this.speedY;
       this.wobble += this.wobbleSpeed;
-      this.x += Math.sin(this.wobble) * 0.3;
-      if (this.y < -10) this.reset();
+      this.x += this.speedX + Math.sin(this.wobble) * 0.4;
+      this.rot += this.rotSpeed;
+      if (this.y > canvas.height + 20) this.reset();
     }
     draw(ctx) {
       ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rot);
       ctx.globalAlpha = this.opacity;
-      ctx.fillStyle = this.color;
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 8;
       ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      // Petal shape
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(
+        this.size * 0.4, -this.size * 0.5,
+        this.size, -this.size * 0.3,
+        this.size * 0.5, this.size * 0.2
+      );
+      ctx.bezierCurveTo(
+        this.size * 0.8, this.size * 0.6,
+        this.size * 0.2, this.size * 0.7,
+        0, 0
+      );
+      ctx.fillStyle = this.colors[0];
+      ctx.fill();
+      // İnner detail
+      ctx.beginPath();
+      ctx.moveTo(this.size * 0.15, this.size * 0.05);
+      ctx.bezierCurveTo(
+        this.size * 0.35, -this.size * 0.2,
+        this.size * 0.6, -this.size * 0.05,
+        this.size * 0.4, this.size * 0.2
+      );
+      ctx.fillStyle = this.colors[1];
+      ctx.globalAlpha = this.opacity * 0.4;
       ctx.fill();
       ctx.restore();
     }
   }
 
-  // Init background particles
-  for (let i = 0; i < 60; i++) {
-    bgParticles.push(new BgParticle());
-  }
+  const petalCount = Math.min(35, Math.floor(innerWidth / 30));
+  for (let i = 0; i < petalCount; i++) petals.push(new Petal());
 
-  function burstParticles(x, y, color, count) {
-    for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
-      const speed = Math.random() * 3 + 1;
-      const size = Math.random() * 3 + 1;
-      particles.push(new Particle(
-        x, y, color, size,
-        Math.cos(angle) * speed,
-        Math.sin(angle) * speed,
-        60 + Math.random() * 40
-      ));
-    }
-  }
-
-  function animateParticles() {
+  function animatePetals() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    bgParticles.forEach(p => { p.update(); p.draw(ctx); });
-
-    particles = particles.filter(p => p.life > 0);
-    particles.forEach(p => { p.update(); p.draw(ctx); });
-
-    requestAnimationFrame(animateParticles);
+    petals.forEach(p => { p.update(); p.draw(ctx); });
+    requestAnimationFrame(animatePetals);
   }
-  animateParticles();
-
-  // Mouse click particles
-  document.addEventListener('click', (e) => {
-    const colors = ['#00f0ff', '#b400ff', '#ff006a', '#c8d800'];
-    burstParticles(e.clientX, e.clientY, colors[Math.floor(Math.random() * colors.length)], 8);
-  });
+  animatePetals();
 </script>
 </body>
 </html>
