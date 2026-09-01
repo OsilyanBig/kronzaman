@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Neon Kronometre</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: #0a0a0f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', monospace;
+    overflow: hidden;
+    position: relative;
+  }
+
+  canvas#particleCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+  }
+
+  .clock-wrapper {
+    position: relative;
+    width: 320px;
+    height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  svg.ring {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    transform: rotate(-90deg);
+    filter: drop-shadow(0 0 15px var(--glow-color, #00f0ff));
+  }
+
+  .ring-bg {
+    fill: none;
+    stroke: #1a1a2e;
+    stroke-width: 6;
+  }
+
+  .ring-progress {
+    fill: none;
+    stroke: url(#neonGrad);
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 942;
+    stroke-dashoffset: 942;
+    transition: stroke-dashoffset 0.1s linear;
+  }
+
+  .ring-seconds {
+    fill: none;
+    stroke: url(#secondGrad);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 855;
+    stroke-dashoffset: 855;
+    transition: stroke-dashoffset 0.05s linear;
+  }
+
+  .inner-glow {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,240,255,0.03) 0%, transparent 70%);
+    border: 1px solid rgba(0,240,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .time-display {
+    font-size: 2.6rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #00f0ff, #b400ff, #ff006a);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 4s ease infinite;
+    letter-spacing: 2px;
+    text-shadow: none;
+    position: relative;
+  }
+
+  .time-display::after {
+    content: attr(data-time);
+    position: absolute;
+    top: 0; left: 0;
+    background: linear-gradient(135deg, #00f0ff, #b400ff, #ff006a);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 4s ease infinite;
+    filter: blur(12px);
+    opacity: 0.6;
+    z-index: -1;
+  }
+
+  .ms-display {
+    font-size: 1rem;
+    color: rgba(0,240,255,0.5);
+    margin-top: 4px;
+    letter-spacing: 4px;
+  }
+
+  .status-text {
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.2);
+    text-transform: uppercase;
+    letter-spacing: 6px;
+    margin-top: 8px;
+  }
+
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .controls {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    position: relative;
+    padding: 14px 32px;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    outline: none;
+  }
+
+  .btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transition: left 0.5s ease;
+  }
+
+  .btn:hover::before { left: 100%; }
+
+  .btn-start {
+    background: linear-gradient(135deg, #00f0ff22, #00f0ff11);
+    color: #00f0ff;
+    border: 1px solid #00f0ff44;
+    box-shadow: 0 0 20px rgba(0,240,255,0.15), inset 0 0 20px rgba(0,240,255,0.05);
+  }
+  .btn-start:hover {
+    box-shadow: 0 0 40px rgba(0,240,255,0.3), inset 0 0 30px rgba(0,240,255,0.1);
+    transform: translateY(-2px);
+  }
+
+  .btn-stop {
+    background: linear-gradient(135deg, #ff006a22, #ff006a11);
+    color: #ff006a;
+    border: 1px solid #ff006a44;
+    box-shadow: 0 0 20px rgba(255,0,106,0.15), inset 0 0 20px rgba(255,0,106,0.05);
+  }
+  .btn-stop:hover {
+    box-shadow: 0 0 40px rgba(255,0,106,0.3), inset 0 0 30px rgba(255,0,106,0.1);
+    transform: translateY(-2px);
+  }
+
+  .btn-reset {
+    background: linear-gradient(135deg, #b400ff22, #b400ff11);
+    color: #b400ff;
+    border: 1px solid #b400ff44;
+    box-shadow: 0 0 20px rgba(180,0,255,0.15), inset 0 0 20px rgba(180,0,255,0.05);
+  }
+  .btn-reset:hover {
+    box-shadow: 0 0 40px rgba(180,0,255,0.3), inset 0 0 30px rgba(180,0,255,0.1);
+    transform: translateY(-2px);
+  }
+
+  .btn-lap {
+    background: linear-gradient(135deg, #f0ff0022, #f0ff0011);
+    color: #c8d800;
+    border: 1px solid #c8d80044;
+    box-shadow: 0 0 20px rgba(200,216,0,0.15), inset 0 0 20px rgba(200,216,0,0.05);
+  }
+  .btn-lap:hover {
+    box-shadow: 0 0 40px rgba(200,216,0,0.3), inset 0 0 30px rgba(200,216,0,0.1);
+    transform: translateY(-2px);
+  }
+
+  .btn:active { transform: scale(0.95) !important; }
+
+  .laps-container {
+    width: 360px;
+    max-height: 220px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #b400ff33 transparent;
+  }
+
+  .laps-container::-webkit-scrollbar { width: 4px; }
+  .laps-container::-webkit-scrollbar-track { background: transparent; }
+  .laps-container::-webkit-scrollbar-thumb { background: #b400ff44; border-radius: 2px; }
+
+  .lap-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    margin-bottom: 4px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    animation: lapIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(10px);
+  }
+
+  .lap-item:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(0,240,255,0.15);
+  }
+
+  .lap-item.best { border-color: rgba(0,255,100,0.3); }
+  .lap-item.best .lap-time { color: #00ff64; }
+  .lap-item.worst { border-color: rgba(255,0,106,0.3); }
+  .lap-item.worst .lap-time { color: #ff006a; }
+
+  .lap-number {
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 2px;
+  }
+
+  .lap-time {
+    font-size: 0.8rem;
+    color: rgba(0,240,255,0.7);
+    letter-spacing: 1px;
+  }
+
+  .lap-diff {
+    font-size: 0.55rem;
+    color: rgba(180,0,255,0.5);
+    letter-spacing: 1px;
+  }
+
+  @keyframes lapIn {
+    0% { opacity: 0; transform: translateX(-30px) scale(0.9); }
+    100% { opacity: 1; transform: translateX(0) scale(1); }
+  }
+
+  .floating-orb {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(80px);
+    animation: floatOrb 8s ease-in-out infinite;
+  }
+
+  .orb1 {
+    width: 300px; height: 300px;
+    background: rgba(0,240,255,0.06);
+    top: -100px; left: -100px;
+    animation-delay: 0s;
+  }
+  .orb2 {
+    width: 250px; height: 250px;
+    background: rgba(180,0,255,0.06);
+    bottom: -80px; right: -80px;
+    animation-delay: -3s;
+  }
+  .orb3 {
+    width: 200px; height: 200px;
+    background: rgba(255,0,106,0.04);
+    top: 50%; left: 60%;
+    animation-delay: -5s;
+  }
+
+  @keyframes floatOrb {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(30px, -30px) scale(1.1); }
+    50% { transform: translate(-20px, 20px) scale(0.95); }
+    75% { transform: translate(15px, 10px) scale(1.05); }
+  }
+
+  .pulse-dot {
+    position: absolute;
+    top: 18px;
+    right: calc(50% - 4px);
+    width: 8px; height: 8px;
+    background: #00f0ff;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .pulse-dot.active {
+    opacity: 1;
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 4px #00f0ff, 0 0 8px #00f0ff; transform: scale(1); }
+    50% { box-shadow: 0 0 12px #00f0ff, 0 0 24px #00f0ff; transform: scale(1.3); }
+  }
+
+  .keyboard-hint {
+    position: fixed;
+    bottom: 20px;
+    font-size: 0.5rem;
+    color: rgba(255,255,255,0.15);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 480px) {
+    .clock-wrapper { width: 260px; height: 260px; }
+    .inner-glow { width: 210px; height: 210px; }
+    .time-display { font-size: 2rem; }
+    .laps-container { width: 300px; }
+    .btn { padding: 12px 22px; font-size: 0.65rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="floating-orb orb1"></div>
+<div class="floating-orb orb2"></div>
+<div class="floating-orb orb3"></div>
+
+<canvas id="particleCanvas"></canvas>
+
+<div class="container">
+  <div class="clock-wrapper">
+    <svg class="ring" viewBox="0 0 320 320">
+      <defs>
+        <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#00f0ff"/>
+          <stop offset="50%" style="stop-color:#b400ff"/>
+          <stop offset="100%" style="stop-color:#ff006a"/>
+        </linearGradient>
+        <linearGradient id="secondGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#00f0ff;stop-opacity:0.4"/>
+          <stop offset="100%" style="stop-color:#b400ff;stop-opacity:0.4"/>
+        </linearGradient>
+      </defs>
+      <circle class="ring-bg" cx="160" cy="160" r="150"/>
+      <circle class="ring-seconds" cx="160" cy="160" r="136"/>
+      <circle class="ring-progress" cx="160" cy="160" r="150"/>
+    </svg>
+    <div class="pulse-dot" id="pulseDot"></div>
+    <div class="inner-glow">
+      <div class="time-display" id="display" data-time="00:00:00">00:00:00</div>
+      <div class="ms-display" id="msDisplay">.000</div>
+      <div class="status-text" id="statusText">hazır</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-start" id="btnStart" onclick="startTimer()">Başlat</button>
+    <button class="btn btn-stop" id="btnStop" onclick="stopTimer()">Durdur</button>
+    <button class="btn btn-lap" id="btnLap" onclick="addLap()">Tur</button>
+    <button class="btn btn-reset" id="btnReset" onclick="resetTimer()">Sıfırla</button>
+  </div>
+
+  <div class="laps-container" id="lapsContainer"></div>
+</div>
+
+<div class="keyboard-hint">Space: Başlat/Durdur &nbsp;|&nbsp; L: Tur &nbsp;|&nbsp; R: Sıfırla</div>
+
+<script>
+  let startTime = 0;
+  let elapsed = 0;
+  let running = false;
+  let animFrame = null;
+  let laps = [];
+  let lastLapTime = 0;
+
+  const display = document.getElementById('display');
+  const msDisplay = document.getElementById('msDisplay');
+  const statusText = document.getElementById('statusText');
+  const pulseDot = document.getElementById('pulseDot');
+  const lapsContainer = document.getElementById('lapsContainer');
+  const ringProgress = document.querySelector('.ring-progress');
+  const ringSeconds = document.querySelector('.ring-seconds');
+
+  const circumference = 2 * Math.PI * 150;
+  const secCircumference = 2 * Math.PI * 136;
+  ringProgress.style.strokeDasharray = circumference;
+  ringProgress.style.strokeDashoffset = circumference;
+  ringSeconds.style.strokeDasharray = secCircumference;
+  ringSeconds.style.strokeDashoffset = secCircumference;
+
+  function formatTime(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    const hrs = Math.floor(mins / 60);
+    const displayMins = mins % 60;
+    if (hrs > 0) {
+      return `${pad(hrs)}:${pad(displayMins)}:${pad(secs)}`;
+    }
+    return `${pad(displayMins)}:${pad(secs)}`;
+  }
+
+  function formatMs(ms) {
+    return '.' + String(ms % 1000).padStart(3, '0');
+  }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function formatFull(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    const millis = ms % 1000;
+    return `${pad(mins)}:${pad(secs)}.${String(millis).padStart(3, '0')}`;
+  }
+
+  function updateDisplay() {
+    if (!running) return;
+    const now = performance.now();
+    elapsed = now - startTime;
+
+    const timeStr = formatTime(elapsed);
+    display.textContent = timeStr;
+    display.setAttribute('data-time', timeStr);
+    msDisplay.textContent = formatMs(elapsed);
+
+    // Ring - dakika (60 saniyede bir tur)
+    const secFraction = (elapsed % 60000) / 60000;
+    const offset = circumference * (1 - secFraction);
+    ringProgress.style.strokeDashoffset = offset;
+
+    // Inner ring - saniye (1 saniyede bir tur)
+    const msecFraction = (elapsed % 1000) / 1000;
+    const secOffset = secCircumference * (1 - msecFraction);
+    ringSeconds.style.strokeDashoffset = secOffset;
+
+    animFrame = requestAnimationFrame(updateDisplay);
+  }
+
+  function startTimer() {
+    if (running) return;
+    running = true;
+    startTime = performance.now() - elapsed;
+    statusText.textContent = 'çalışıyor';
+    pulseDot.classList.add('active');
+    burstParticles(window.innerWidth / 2, window.innerHeight / 2, '#00f0ff', 25);
+    updateDisplay();
+  }
+
+  function stopTimer() {
+    if (!running) return;
+    running = false;
+    cancelAnimationFrame(animFrame);
+    statusText.textContent = 'durduruldu';
+    pulseDot.classList.remove('active');
+    burstParticles(window.innerWidth / 2, window.innerHeight / 2, '#ff006a', 25);
+  }
+
+  function resetTimer() {
+    running = false;
+    cancelAnimationFrame(animFrame);
+    elapsed = 0;
+    lastLapTime = 0;
+    laps = [];
+    display.textContent = '00:00:00';
+    display.setAttribute('data-time', '00:00:00');
+    msDisplay.textContent = '.000';
+    statusText.textContent = 'hazır';
+    pulseDot.classList.remove('active');
+    ringProgress.style.strokeDashoffset = circumference;
+    ringSeconds.style.strokeDashoffset = secCircumference;
+    lapsContainer.innerHTML = '';
+    burstParticles(window.innerWidth / 2, window.innerHeight / 2, '#b400ff', 35);
+  }
+
+  function addLap() {
+    if (!running) return;
+    const lapTime = elapsed;
+    const diff = lapTime - lastLapTime;
+    lastLapTime = lapTime;
+    laps.push({ total: lapTime, diff: diff });
+    burstParticles(window.innerWidth / 2, window.innerHeight / 2, '#c8d800', 15);
+    renderLaps();
+  }
+
+  function renderLaps() {
+    lapsContainer.innerHTML = '';
+    if (laps.length < 2) {
+      laps.forEach((lap, i) => {
+        lapsContainer.insertAdjacentHTML('afterbegin', createLapHTML(i, lap, ''));
+      });
+      return;
+    }
+
+    const diffs = laps.map(l => l.diff);
+    const minDiff = Math.min(...diffs);
+    const maxDiff = Math.max(...diffs);
+
+    laps.forEach((lap, i) => {
+      let cls = '';
+      if (laps.length >= 2) {
+        if (lap.diff === minDiff) cls = 'best';
+        else if (lap.diff === maxDiff) cls = 'worst';
+      }
+      lapsContainer.insertAdjacentHTML('afterbegin', createLapHTML(i, lap, cls));
+    });
+  }
+
+  function createLapHTML(i, lap, cls) {
+    return `<div class="lap-item ${cls}">
+      <span class="lap-number">TUR ${i + 1}</span>
+      <span class="lap-diff">+${formatFull(lap.diff)}</span>
+      <span class="lap-time">${formatFull(lap.total)}</span>
+    </div>`;
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      running ? stopTimer() : startTimer();
+    } else if (e.code === 'KeyL') {
+      addLap();
+    } else if (e.code === 'KeyR') {
+      resetTimer();
+    }
+  });
+
+  // ===== PARTICLE SYSTEM =====
+  const canvas = document.getElementById('particleCanvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let bgParticles = [];
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  class Particle {
+    constructor(x, y, color, size, vx, vy, life) {
+      this.x = x; this.y = y;
+      this.color = color;
+      this.size = size;
+      this.vx = vx; this.vy = vy;
+      this.life = life;
+      this.maxLife = life;
+      this.gravity = 0.02;
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.vy += this.gravity;
+      this.vx *= 0.99;
+      this.life--;
+    }
+    draw(ctx) {
+      const alpha = this.life / this.maxLife;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = this.color;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * alpha, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  class BgParticle {
+    constructor() {
+      this.reset();
+      this.y = Math.random() * canvas.height;
+    }
+    reset() {
+      this.x = Math.random() * canvas.width;
+      this.y = canvas.height + 10;
+      this.size = Math.random() * 2 + 0.5;
+      this.speed = Math.random() * 0.3 + 0.1;
+      this.opacity = Math.random() * 0.3 + 0.05;
+      this.color = ['#00f0ff', '#b400ff', '#ff006a'][Math.floor(Math.random() * 3)];
+      this.wobble = Math.random() * Math.PI * 2;
+      this.wobbleSpeed = Math.random() * 0.02 + 0.005;
+    }
+    update() {
+      this.y -= this.speed;
+      this.wobble += this.wobbleSpeed;
+      this.x += Math.sin(this.wobble) * 0.3;
+      if (this.y < -10) this.reset();
+    }
+    draw(ctx) {
+      ctx.save();
+      ctx.globalAlpha = this.opacity;
+      ctx.fillStyle = this.color;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Init background particles
+  for (let i = 0; i < 60; i++) {
+    bgParticles.push(new BgParticle());
+  }
+
+  function burstParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+      const speed = Math.random() * 3 + 1;
+      const size = Math.random() * 3 + 1;
+      particles.push(new Particle(
+        x, y, color, size,
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed,
+        60 + Math.random() * 40
+      ));
+    }
+  }
+
+  function animateParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    bgParticles.forEach(p => { p.update(); p.draw(ctx); });
+
+    particles = particles.filter(p => p.life > 0);
+    particles.forEach(p => { p.update(); p.draw(ctx); });
+
+    requestAnimationFrame(animateParticles);
+  }
+  animateParticles();
+
+  // Mouse click particles
+  document.addEventListener('click', (e) => {
+    const colors = ['#00f0ff', '#b400ff', '#ff006a', '#c8d800'];
+    burstParticles(e.clientX, e.clientY, colors[Math.floor(Math.random() * colors.length)], 8);
+  });
+</script>
+</body>
+</html>
